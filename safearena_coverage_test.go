@@ -318,10 +318,10 @@ func TestConcurrentArenas(t *testing.T) {
 // Test complex struct allocation
 func TestComplexStruct(t *testing.T) {
 	type ComplexData struct {
-		ID      int
-		Name    string
-		Values  []int
-		Nested  map[string]interface{}
+		ID     int
+		Name   string
+		Values []int
+		Nested map[string]interface{}
 	}
 
 	result := Scoped(func(a *Arena) string {
