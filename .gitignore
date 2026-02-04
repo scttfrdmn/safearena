@@ -16,7 +16,8 @@ go.work
 go.work.sum
 
 # Built tools
-arenacheck
+/arenacheck
+cmd/arenacheck/arenacheck
 
 # IDE
 .vscode/

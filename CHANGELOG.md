@@ -8,10 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Improved arenacheck detection rates
 - Better error messages with suggestions
 - Performance optimizations
+- CI/CD pipeline
+- More comprehensive examples
 - Production readiness improvements
+
+## [0.2.0] - 2026-02-03
+
+### Added - arenacheck improvements
+- **Direct return detection**: Now catches `return arena.New[T](a)` patterns
+- **Use-after-free detection**: Detects usage of allocations after `arena.Free()`
+- **Store/load tracking**: Traces allocations through local variable assignments
+- Comprehensive test suite with 7 test cases
+- Detailed results documentation (ARENACHECK_V02_RESULTS.md)
+
+### Fixed
+- **False positives**: Type checking prevents flagging safe value returns (int, string, etc.)
+- Improved SSA value tracing through UnOp, FieldAddr, IndexAddr operations
+
+### Changed
+- Detection rate improved from 25% to 100% (4/4 patterns)
+- Zero false positives in test suite
+- More accurate error messages with allocation source locations
+
+### Technical
+- Rewrote analyzer with two-pass approach
+- Added `findAllocation()` for recursive value tracing
+- Added `checkUseAfterFree()` for post-Free validation
+- Better handling of deferred Free() calls
 
 ## [0.1.0] - 2026-02-03
 
@@ -46,5 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small runtime overhead (~13% vs raw arenas)
 - Not production-ready (experimental arena package)
 
-[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/scttfrdmn/safearena/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scttfrdmn/safearena/releases/tag/v0.1.0
