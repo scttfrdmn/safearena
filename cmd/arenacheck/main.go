@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	singlechecker.Main(AnalyzerFinal)
+	singlechecker.Main(AnalyzerFinal2)
 }
