@@ -181,13 +181,21 @@ See the [examples/](examples/) directory for complete examples:
 
 ## Contributing
 
-Contributions welcome! This is a proof-of-concept demonstrating that safe arena management is possible in Go. Areas for improvement:
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) to get started.
 
-- [ ] Improve arenacheck detection rates
-- [ ] Add more test cases
-- [ ] Better error messages
-- [ ] Performance optimizations
-- [ ] Production readiness
+**Quick Links:**
+- [Contributing Guide](CONTRIBUTING.md) - Development setup, coding standards, PR process
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
+- [Security Policy](SECURITY.md) - Reporting vulnerabilities
+
+**Areas for Contribution:**
+- Improve arenacheck detection rates
+- Add more test cases and examples
+- Performance optimizations
+- Documentation improvements
+- Cross-platform testing
+
+See [open issues](https://github.com/scttfrdmn/safearena/issues) for specific tasks.
 
 ## License
 
