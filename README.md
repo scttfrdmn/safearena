@@ -173,8 +173,10 @@ See the [examples/](examples/) directory for complete examples:
 
 - [Migration Guide](docs/MIGRATION.md) - Migrating from raw arenas to SafeArena
 - [FAQ](docs/FAQ.md) - Frequently asked questions
+- [Performance Guide](docs/PERFORMANCE.md) - Performance characteristics and optimization
 - [Creative Solution](docs/CREATIVE_SOLUTION.md) - Deep dive into the design
 - [Arenacheck Results](docs/ARENACHECK_RESULTS.md) - Static analyzer evaluation
+- [Arenacheck README](cmd/arenacheck/README.md) - Static analyzer documentation
 
 ## Requirements
 
