@@ -64,7 +64,7 @@ func errorWithHint(arenaID uint64, errorType string, stack *stackInfo, hint stri
 
 // Common hints
 const (
-	hintUseAfterFree = "Arena was freed before this access. Use Clone() to copy values to heap, or ensure arena lifetime covers all uses."
-	hintDoubleFree   = "Arena.Free() was called twice. Make sure Free() is only called once, typically with defer."
+	hintUseAfterFree   = "Arena was freed before this access. Use Clone() to copy values to heap, or ensure arena lifetime covers all uses."
+	hintDoubleFree     = "Arena.Free() was called twice. Make sure Free() is only called once, typically with defer."
 	hintAllocAfterFree = "Cannot allocate in a freed arena. Create a new arena or ensure this code runs before Free()."
 )

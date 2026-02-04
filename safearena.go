@@ -1,3 +1,5 @@
+// Package safearena provides safe, ergonomic arena memory management for Go with runtime safety checks.
+// It wraps Go's experimental arena package with type-safe wrappers that prevent use-after-free and double-free errors.
 package safearena
 
 import (

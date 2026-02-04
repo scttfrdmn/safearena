@@ -1,6 +1,17 @@
+<div align="center">
+  <img src="docs/logo.png" alt="SafeArena Logo" width="400"/>
+
 # SafeArena
 
 **Safe, ergonomic arena memory management for Go with compile-time and runtime safety checks.**
+
+[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/scttfrdmn/safearena)](https://goreportcard.com/report/github.com/scttfrdmn/safearena)
+[![Release](https://img.shields.io/github/v/release/scttfrdmn/safearena?style=flat)](https://github.com/scttfrdmn/safearena/releases)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/scttfrdmn/safearena/ci.yml?branch=main&label=CI&style=flat)](https://github.com/scttfrdmn/safearena/actions)
+
+</div>
 
 Go's experimental arena package provides performance benefits but requires careful manual lifetime management. SafeArena makes arenas safe and easy to use by combining:
 

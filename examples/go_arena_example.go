@@ -100,7 +100,7 @@ func benchmark(name string, fn func(*Request) *Response) {
 
 func main() {
 	fmt.Println("Go Arena vs GC Comparison")
-	fmt.Println("Processing 10,000 requests...\n")
+	fmt.Println("Processing 10,000 requests...")
 
 	// Warm up
 	processRequestWithGC(&Request{ID: 0})
