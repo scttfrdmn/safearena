@@ -37,3 +37,5 @@ cmd/arenacheck/arenacheck
 # Build artifacts
 /bin/
 /dist/
+coverage.out
+coverage.html

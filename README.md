@@ -7,6 +7,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/scttfrdmn/safearena)](https://goreportcard.com/report/github.com/scttfrdmn/safearena)
+[![Coverage](https://img.shields.io/badge/coverage-96.9%25-brightgreen?style=flat)](https://github.com/scttfrdmn/safearena)
 [![Release](https://img.shields.io/github/v/release/scttfrdmn/safearena?style=flat)](https://github.com/scttfrdmn/safearena/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/scttfrdmn/safearena/ci.yml?branch=main&label=CI&style=flat)](https://github.com/scttfrdmn/safearena/actions)
