@@ -8,11 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Better error messages with suggestions
-- Performance optimizations
-- CI/CD pipeline
-- More comprehensive examples
+- More comprehensive examples (parser, game engine)
+- Interprocedural analysis for arenacheck
 - Production readiness improvements
+
+## [0.3.0] - 2026-02-03
+
+### Added
+- **CI/CD Pipeline**: GitHub Actions for automated testing and releases
+  - Tests on Linux, macOS, Windows
+  - Multiple Go versions (1.23, 1.24, 1.25)
+  - Automated benchmarks
+  - Coverage reporting
+  - Multi-platform binary builds
+- **HTTP Server Example**: Request-scoped arena allocation pattern
+- **Improved Error Messages**: Stack traces and helpful hints
+  - Shows file:line location of errors
+  - Actionable suggestions (e.g., "Use Clone() to copy to heap")
+  - Emoji indicators for better visibility
+
+### Changed - Performance Optimizations
+- **9.6x faster** allocations (1,167 ns vs 11,167 ns)
+- **5.6x less memory** per pointer (64 B vs 359 B)
+- **3x fewer allocations** (2 vs 6 per operation)
+- Removed unused `sync.Map` tracking
+- Removed redundant `arenaID` field from `Ptr[T]`
+- Streamlined struct layouts for better cache locality
+
+### Technical
+- `errors.go`: Stack capture and hint system
+- Optimized hot paths in `Alloc()` and `Get()`
+- CI workflows for continuous integration and release automation
 
 ## [0.2.0] - 2026-02-03
 
@@ -71,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small runtime overhead (~13% vs raw arenas)
 - Not production-ready (experimental arena package)
 
-[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/scttfrdmn/safearena/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scttfrdmn/safearena/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scttfrdmn/safearena/releases/tag/v0.1.0
