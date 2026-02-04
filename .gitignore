@@ -39,3 +39,9 @@ cmd/arenacheck/arenacheck
 /dist/
 coverage.out
 coverage.html
+
+# Example binaries
+examples/*/json_parser
+examples/*/database_processor
+examples/*/image_filter
+examples/*/http_server
