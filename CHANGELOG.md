@@ -8,9 +8,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- More comprehensive examples (parser, game engine)
 - Interprocedural analysis for arenacheck
 - Production readiness improvements
+
+## [0.4.0] - 2026-02-03
+
+### Added - Documentation & Polish
+- **Comprehensive API Documentation**
+  - `doc.go` with package-level overview and usage patterns
+  - `example_test.go` with 10 runnable godoc examples
+  - Enhanced inline documentation for all exported functions
+  - Each function includes usage examples and panic conditions
+  - Ready for pkg.go.dev publication
+
+- **Test Coverage 96.9%** (improved from 56.2%)
+  - `safearena_coverage_test.go` with 29 comprehensive tests
+  - Full coverage of optimized version (all Opt variants)
+  - Error path coverage (use-after-free, double-free, alloc-after-free)
+  - Edge case tests (large allocations, concurrent usage, complex structs)
+  - Race detection tests (no data races found)
+
+- **Fuzz Testing**
+  - `safearena_fuzz_test.go` with 5 fuzz tests
+  - Over 5 million random executions total
+  - Tests: FuzzAlloc, FuzzAllocSlice, FuzzStringBuilder, FuzzClone, FuzzOptimized
+  - Zero failures across all fuzz tests
+
+- **Real-World Examples**
+  - **JSON Parser** (`examples/json_parser/`) - Arena-allocated AST pattern
+    - Performance: ~1.4x faster for parse-process patterns
+    - Shows temporary parse trees with final results on heap
+  - **Database Query Processor** (`examples/database_processor/`) - Request-scoped processing
+    - Performance: ~1.4x faster with lower GC pressure
+    - Shows per-query buffers, filtering, aggregation
+  - **Image Filter Pipeline** (`examples/image_filter/`) - Multi-pass large buffers
+    - Performance: ~1.5x faster (scales with image size)
+    - Shows working with MB-sized temp buffers
+  - Master `examples/README.md` with patterns, anti-patterns, and guidelines
+
+- **Community Documentation**
+  - `CONTRIBUTING.md` - Comprehensive 400+ line contribution guide
+    - Development setup, testing, code quality
+    - Coding standards and documentation guidelines
+    - Commit conventions and PR process
+  - `CODE_OF_CONDUCT.md` - Community guidelines
+  - `SECURITY.md` - Vulnerability reporting and security policy
+
+- **Badges and Quality**
+  - Go Report Card badge (A+ ready)
+  - Test coverage badge (96.9%)
+  - Updated README with contributing section
+
+### Changed
+- Enhanced README Contributing section with links to all community docs
+- Updated `.gitignore` for coverage files and example binaries
+
+### Technical
+- All examples include benchmarks and detailed READMEs
+- Examples show real performance numbers and use cases
+- Coverage HTML report generation
+- Fuzz corpus seeding for comprehensive testing
 
 ## [0.3.0] - 2026-02-03
 
@@ -97,7 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small runtime overhead (~13% vs raw arenas)
 - Not production-ready (experimental arena package)
 
-[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/scttfrdmn/safearena/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/scttfrdmn/safearena/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scttfrdmn/safearena/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scttfrdmn/safearena/releases/tag/v0.1.0
