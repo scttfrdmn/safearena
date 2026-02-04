@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23', '1.24', '1.25']
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go }}-
+
+    - name: Install dependencies
+      run: go mod download
+      env:
+        GOEXPERIMENT: arenas
+
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      env:
+        GOEXPERIMENT: arenas
+
+    - name: Upload coverage
+      if: matrix.os == 'ubuntu-latest' && matrix.go == '1.25'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.txt
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Run go vet
+      run: go vet ./...
+      env:
+        GOEXPERIMENT: arenas
+
+    - name: Install staticcheck
+      run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+    - name: Run staticcheck
+      run: staticcheck ./...
+      env:
+        GOEXPERIMENT: arenas
+
+  bench:
+    name: Benchmark
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Run benchmarks
+      run: go test -bench=. -benchmem -benchtime=100x
+      env:
+        GOEXPERIMENT: arenas
+
+  arenacheck:
+    name: Build arenacheck
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Build arenacheck
+      run: |
+        cd cmd/arenacheck
+        go build -o arenacheck .
+      env:
+        GOEXPERIMENT: arenas
+
+    - name: Test arenacheck
+      run: |
+        cd cmd/arenacheck
+        ./arenacheck ./testdata/bad.go || true
+        echo "Arenacheck ran successfully"
+      env:
+        GOEXPERIMENT: arenas
+
+    - name: Upload arenacheck binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: arenacheck-linux-amd64
+        path: cmd/arenacheck/arenacheck

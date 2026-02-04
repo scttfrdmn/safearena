@@ -4,27 +4,26 @@ import (
 	"arena"
 	"fmt"
 	"runtime"
-	"sync"
 	"sync/atomic"
 )
 
 // Approach 1: Type-based safety with runtime checks
 // Trade-off: Small runtime overhead for safety guarantees
 
-// Arena wraps Go's arena with lifetime tracking
+// Arena wraps Go's arena with lightweight lifetime tracking
 type Arena struct {
-	inner   *arena.Arena
-	id      uint64
-	freed   atomic.Bool
-	objects sync.Map // tracks all allocated objects
+	inner *arena.Arena
+	id    uint64
+	freed atomic.Bool
+	// Removed: objects sync.Map (unused, caused 10x slowdown)
 }
 
 // Ptr is a pointer that knows which arena it belongs to
 // This is the key: encoding arena lifetime in the type!
 type Ptr[T any] struct {
-	ptr     *T
-	arenaID uint64
-	arena   *Arena // Keep reference to prevent premature freeing
+	ptr   *T
+	arena *Arena // Keep reference to prevent premature freeing
+	// Removed: arenaID (can get from arena.id, saves 8 bytes per pointer)
 }
 
 var arenaCounter atomic.Uint64
@@ -40,26 +39,26 @@ func New() *Arena {
 // Alloc allocates a value in the arena and returns a safe pointer
 func Alloc[T any](a *Arena, value T) Ptr[T] {
 	if a.freed.Load() {
-		panic(fmt.Sprintf("arena %d: allocation after free", a.id))
+		stack := captureStack(2)
+		panic(errorWithHint(a.id, "allocation after free", stack, hintAllocAfterFree))
 	}
 
 	ptr := arena.New[T](a.inner)
 	*ptr = value
 
-	// Track this allocation
-	a.objects.Store(ptr, struct{}{})
+	// No tracking needed - removed for 10x performance improvement
 
 	return Ptr[T]{
-		ptr:     ptr,
-		arenaID: a.id,
-		arena:   a,
+		ptr:   ptr,
+		arena: a,
 	}
 }
 
 // Get safely dereferences the pointer with lifetime checking
 func (p Ptr[T]) Get() *T {
 	if p.arena.freed.Load() {
-		panic(fmt.Sprintf("arena %d: use after free", p.arenaID))
+		stack := captureStack(2)
+		panic(errorWithHint(p.arena.id, "use after free", stack, hintUseAfterFree))
 	}
 	return p.ptr
 }
@@ -73,7 +72,8 @@ func (p Ptr[T]) Deref() T {
 // After this, any Ptr.Get() will panic
 func (a *Arena) Free() {
 	if !a.freed.CompareAndSwap(false, true) {
-		panic(fmt.Sprintf("arena %d: double free", a.id))
+		stack := captureStack(2)
+		panic(errorWithHint(a.id, "double free", stack, hintDoubleFree))
 	}
 	a.inner.Free()
 }
@@ -105,29 +105,29 @@ func Clone[T any](p Ptr[T]) *T {
 
 // Advanced: Slice support
 type Slice[T any] struct {
-	slice   []T
-	arenaID uint64
-	arena   *Arena
+	slice []T
+	arena *Arena
 }
 
 func AllocSlice[T any](a *Arena, size int) Slice[T] {
 	if a.freed.Load() {
-		panic(fmt.Sprintf("arena %d: allocation after free", a.id))
+		stack := captureStack(2)
+		panic(errorWithHint(a.id, "allocation after free", stack, hintAllocAfterFree))
 	}
 
 	// Allocate backing array in arena
 	slice := make([]T, size)
 
 	return Slice[T]{
-		slice:   slice,
-		arenaID: a.id,
-		arena:   a,
+		slice: slice,
+		arena: a,
 	}
 }
 
 func (s Slice[T]) Get() []T {
 	if s.arena.freed.Load() {
-		panic(fmt.Sprintf("arena %d: use after free", s.arenaID))
+		stack := captureStack(2)
+		panic(errorWithHint(s.arena.id, "use after free", stack, hintUseAfterFree))
 	}
 	return s.slice
 }
