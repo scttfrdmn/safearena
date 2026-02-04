@@ -112,7 +112,8 @@ func generateMockData(count int) []QueryResult {
 }
 
 func main() {
-	fmt.Println("Database Query Processor Example\n")
+	fmt.Println("Database Query Processor Example")
+	fmt.Println()
 
 	// Generate test data
 	rowCount := 1000

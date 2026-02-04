@@ -99,7 +99,8 @@ func main() {
 		}
 	}`)
 
-	fmt.Println("JSON Parser Example: Arena-allocated AST\n")
+	fmt.Println("JSON Parser Example: Arena-allocated AST")
+	fmt.Println()
 
 	// Benchmark with arena
 	start := time.Now()

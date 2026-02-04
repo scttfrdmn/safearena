@@ -176,7 +176,8 @@ func generateTestImage(width, height int) *Image {
 }
 
 func main() {
-	fmt.Println("Image Filter Pipeline Example\n")
+	fmt.Println("Image Filter Pipeline Example")
+	fmt.Println()
 
 	// Test with various image sizes
 	sizes := []struct {
