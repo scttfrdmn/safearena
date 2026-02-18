@@ -52,7 +52,7 @@ a.Free()
 _ = data.Get()  // Panic with stack trace and fix suggestions!
 // arena 1: use after free
 //   at main.go:10 (main.process)
-//   💡 Hint: Use Clone() to copy values to heap...
+//   [hint] Use Clone() to copy values to heap...
 ```
 
 ### 2. Static Analysis (Compile-Time Detection)
