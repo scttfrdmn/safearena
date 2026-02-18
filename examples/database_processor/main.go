@@ -91,6 +91,7 @@ func processQueryWithoutArena(rows []QueryResult, filterTerm string) []QueryResu
 	}
 
 	_ = filterBuffer // avoid unused warning
+	_ = tempStrings  // temp strings were processed above
 	fmt.Printf("Processed %d rows, found %d matches\n", rowCount, len(resultBuffer))
 	return resultBuffer
 }

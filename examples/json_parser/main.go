@@ -54,6 +54,7 @@ func parseJSON(jsonData []byte) map[string]interface{} {
 			result[k] = v
 		}
 
+		_ = tempNodes // temp nodes freed with arena
 		// Arena freed here, but result is on heap
 		return result
 	})
@@ -82,6 +83,7 @@ func parseJSONWithoutArena(jsonData []byte) map[string]interface{} {
 		copy(processBuffer, []byte(k))
 		result[k] = v
 	}
+	_ = tempNodes // satisfies static analysis; nodes were processed above
 
 	return result
 }
