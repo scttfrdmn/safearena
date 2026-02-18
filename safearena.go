@@ -144,12 +144,29 @@ func Scoped[R any](fn func(*Arena) R) R {
 	return fn(a)
 }
 
-// ScopedPtr is like Scoped but prevents returning arena pointers
-// The function CANNOT return a Ptr[T] - only regular heap values
-func ScopedPtr(fn func(*Arena)) {
+// ScopedVoid executes a function with an arena that's automatically freed.
+// Unlike Scoped, the function cannot return a value, making it impossible to
+// accidentally return an arena-allocated Ptr[T].
+//
+// Example:
+//
+//	safearena.ScopedVoid(func(a *safearena.Arena) {
+//	    buf := safearena.AllocSlice[byte](a, 4096)
+//	    // Use buf, write to external sink, etc.
+//	    // Cannot accidentally return an arena pointer.
+//	})
+func ScopedVoid(fn func(*Arena)) {
 	a := New()
 	defer a.Free()
 	fn(a)
+}
+
+// ScopedPtr is an alias for ScopedVoid.
+//
+// Deprecated: Use ScopedVoid. This name was misleading because it implies a
+// pointer is returned, but the function signature prevents any return value.
+func ScopedPtr(fn func(*Arena)) {
+	ScopedVoid(fn)
 }
 
 // Clone copies a value from the arena to the heap.
@@ -179,8 +196,11 @@ type Slice[T any] struct {
 	arena *Arena
 }
 
-// AllocSlice allocates a slice in the arena with the specified size.
-// The slice is initialized with zero values and has both length and capacity set to size.
+// AllocSlice creates a lifetime-tracked slice of the given size.
+// The Slice[T] wrapper tracks the arena lifetime and panics on use-after-free,
+// but note that the backing array is allocated via make() on the heap, not
+// inside the arena — this is a limitation of Go's arena API which has no
+// arena-backed slice primitive. The lifetime safety guarantee still holds.
 //
 // Panics if the arena has already been freed.
 //
@@ -247,8 +267,13 @@ func NewStringBuilder(a *Arena, capacity int) Ptr[StringBuilder] {
 }
 
 // Append adds a string to the StringBuilder.
+// Panics if the string would exceed the capacity set at NewStringBuilder time.
 func (sb *StringBuilder) Append(s string) {
 	buf := sb.buffers.Get()
+	available := len(buf) - sb.length
+	if len(s) > available {
+		panic(fmt.Sprintf("safearena: StringBuilder overflow: capacity %d, used %d, appending %d bytes", len(buf), sb.length, len(s)))
+	}
 	copy(buf[sb.length:], s)
 	sb.length += len(s)
 }

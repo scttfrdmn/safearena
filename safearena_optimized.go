@@ -117,11 +117,6 @@ func (s SliceOpt[T]) Get() []T {
 	return s.slice
 }
 
-// UnsafeGet returns the slice without checking (use carefully!)
-func (s SliceOpt[T]) UnsafeGet() []T {
-	return s.slice
-}
-
 // SetFinalizer adds a finalizer to detect leaked arenas (optional debug mode)
 func (a *ArenaOpt) SetFinalizer() {
 	runtime.SetFinalizer(a, func(a *ArenaOpt) {

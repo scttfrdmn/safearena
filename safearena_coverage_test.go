@@ -140,27 +140,23 @@ func TestAllocSliceOpt(t *testing.T) {
 	}
 }
 
-// Test optimized version: UnsafeGet
-func TestUnsafeGet(t *testing.T) {
+// Test optimized version: Get panics after free
+func TestSliceOptGetAfterFree(t *testing.T) {
 	a := NewOpt()
-
 	s := AllocSliceOpt[int](a, 5)
-
-	// UnsafeGet should work even without checks
-	slice := s.UnsafeGet()
+	slice := s.Get()
 	slice[0] = 100
-
 	if slice[0] != 100 {
 		t.Error("expected 100")
 	}
-
 	a.Free()
 
-	// UnsafeGet still returns slice (unsafe!)
-	slice = s.UnsafeGet()
-	if slice == nil {
-		t.Error("UnsafeGet returned nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic on Get() after free")
+		}
+	}()
+	_ = s.Get()
 }
 
 // Test optimized version: SetFinalizer
@@ -360,6 +356,51 @@ func TestStringBuilder(t *testing.T) {
 
 	if result != "Hello World!" {
 		t.Errorf("expected 'Hello World!', got '%s'", result)
+	}
+}
+
+// Test StringBuilder overflow panics
+func TestStringBuilderOverflow(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected panic on StringBuilder overflow")
+		}
+		msg, ok := r.(string)
+		if !ok || len(msg) == 0 {
+			t.Errorf("expected non-empty string panic, got %v", r)
+		}
+	}()
+
+	Scoped(func(a *Arena) int {
+		sb := NewStringBuilder(a, 5) // only 5 bytes
+		builder := sb.Get()
+		builder.Append("Hello") // fills exactly
+		builder.Append("!")     // overflow — must panic
+		return 0
+	})
+}
+
+// Test ScopedVoid (renamed from ScopedPtr)
+func TestScopedVoid(t *testing.T) {
+	ran := false
+	ScopedVoid(func(a *Arena) {
+		_ = Alloc(a, 42)
+		ran = true
+	})
+	if !ran {
+		t.Error("ScopedVoid did not execute the function")
+	}
+}
+
+// Test deprecated ScopedPtr still works via alias
+func TestScopedPtrAlias(t *testing.T) {
+	ran := false
+	ScopedPtr(func(a *Arena) { //nolint:staticcheck
+		ran = true
+	})
+	if !ran {
+		t.Error("ScopedPtr alias did not execute the function")
 	}
 }
 

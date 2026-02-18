@@ -56,7 +56,7 @@ func errorWithHint(arenaID uint64, errorType string, stack *stackInfo, hint stri
 
 	// Hint
 	if hint != "" {
-		fmt.Fprintf(&msg, "\n\n  💡 Hint: %s", hint)
+		fmt.Fprintf(&msg, "\n\n  [hint] %s", hint)
 	}
 
 	return msg.String()

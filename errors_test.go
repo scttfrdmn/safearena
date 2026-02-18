@@ -17,7 +17,7 @@ func TestImprovedErrorMessages(t *testing.T) {
 			if !strings.Contains(msg, "use after free") {
 				t.Errorf("expected 'use after free', got: %s", msg)
 			}
-			if !strings.Contains(msg, "Hint:") {
+			if !strings.Contains(msg, "[hint]") {
 				t.Errorf("expected hint, got: %s", msg)
 			}
 			if !strings.Contains(msg, "Clone()") {
@@ -44,7 +44,7 @@ func TestImprovedErrorMessages(t *testing.T) {
 			if !strings.Contains(msg, "double free") {
 				t.Errorf("expected 'double free', got: %s", msg)
 			}
-			if !strings.Contains(msg, "Hint:") {
+			if !strings.Contains(msg, "[hint]") {
 				t.Errorf("expected hint, got: %s", msg)
 			}
 
@@ -67,7 +67,7 @@ func TestImprovedErrorMessages(t *testing.T) {
 			if !strings.Contains(msg, "allocation after free") {
 				t.Errorf("expected 'allocation after free', got: %s", msg)
 			}
-			if !strings.Contains(msg, "Hint:") {
+			if !strings.Contains(msg, "[hint]") {
 				t.Errorf("expected hint, got: %s", msg)
 			}
 
