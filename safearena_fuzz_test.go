@@ -103,17 +103,16 @@ func FuzzClone(f *testing.F) {
 	})
 }
 
-// FuzzOptimized tests the optimized version with various inputs
-func FuzzOptimized(f *testing.F) {
-	// Seed corpus
+// FuzzAllocInt64 tests Alloc with int64 values
+func FuzzAllocInt64(f *testing.F) {
 	f.Add(int64(0))
 	f.Add(int64(42))
 	f.Add(int64(-100))
 	f.Add(int64(999999))
 
 	f.Fuzz(func(t *testing.T, val int64) {
-		result := ScopedOpt(func(a *ArenaOpt) int64 {
-			p := AllocOpt(a, val)
+		result := Scoped(func(a *Arena) int64 {
+			p := Alloc(a, val)
 			return p.Deref()
 		})
 

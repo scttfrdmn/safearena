@@ -221,7 +221,7 @@ Closes #42
 ```
 safearena/
 ├── safearena.go          # Core arena API
-├── safearena_optimized.go # Optimized version
+├── pool.go               # Pool for arena reuse
 ├── errors.go             # Error handling
 ├── doc.go                # Package documentation
 ├── *_test.go             # Tests

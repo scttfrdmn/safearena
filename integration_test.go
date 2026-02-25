@@ -267,19 +267,6 @@ func TestIntegrationMemoryPressure(t *testing.T) {
 	// Should handle memory pressure without issues
 }
 
-// Integration test: Optimized version compatibility
-func TestIntegrationOptimizedVersion(t *testing.T) {
-	// Test that optimized version works correctly
-	result := safearena.ScopedOpt(func(a *safearena.ArenaOpt) int {
-		data := safearena.AllocOpt(a, 42)
-		return data.Deref()
-	})
-
-	if result != 42 {
-		t.Errorf("expected 42, got %d", result)
-	}
-}
-
 // Integration test: Real-world HTTP-like scenario
 func TestIntegrationHTTPScenario(t *testing.T) {
 	type HTTPRequest struct {

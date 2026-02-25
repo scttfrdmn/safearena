@@ -46,7 +46,7 @@ When starting work on a tracked item:
 
 ```
 safearena.go          — primary API: Arena, Ptr[T], Slice[T], Scoped, Clone
-safearena_optimized.go — ArenaOpt / PtrOpt variants with minimal error detail
+pool.go               — Pool type for arena reuse via sync.Pool
 errors.go             — panic message formatting with stack traces
 cmd/arenacheck/       — separate Go module; SSA-based static analyzer
 examples/             — standalone main packages; no tests
