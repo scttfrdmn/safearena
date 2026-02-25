@@ -14,17 +14,19 @@ import (
 
 // Arena wraps Go's arena with lightweight lifetime tracking
 type Arena struct {
-	inner *arena.Arena
-	id    uint64
-	freed atomic.Bool
+	inner      *arena.Arena
+	id         uint64
+	freed      atomic.Bool
+	generation atomic.Uint64
 	// Removed: objects sync.Map (unused, caused 10x slowdown)
 }
 
 // Ptr is a pointer that knows which arena it belongs to
 // This is the key: encoding arena lifetime in the type!
 type Ptr[T any] struct {
-	ptr   *T
-	arena *Arena // Keep reference to prevent premature freeing
+	ptr        *T
+	arena      *Arena // Keep reference to prevent premature freeing
+	generation uint64 // arena generation at allocation time; detects use-after-reset
 	// Removed: arenaID (can get from arena.id, saves 8 bytes per pointer)
 }
 
@@ -66,8 +68,9 @@ func Alloc[T any](a *Arena, value T) Ptr[T] {
 	// No tracking needed - removed for 10x performance improvement
 
 	return Ptr[T]{
-		ptr:   ptr,
-		arena: a,
+		ptr:        ptr,
+		arena:      a,
+		generation: a.generation.Load(),
 	}
 }
 
@@ -86,6 +89,10 @@ func (p Ptr[T]) Get() *T {
 	if p.arena.freed.Load() {
 		stack := captureStack(2)
 		panic(errorWithHint(p.arena.id, "use after free", stack, hintUseAfterFree))
+	}
+	if p.arena.generation.Load() != p.generation {
+		stack := captureStack(2)
+		panic(errorWithHint(p.arena.id, "use after reset", stack, hintUseAfterReset))
 	}
 	return p.ptr
 }
@@ -122,6 +129,31 @@ func (a *Arena) Free() {
 		panic(errorWithHint(a.id, "double free", stack, hintDoubleFree))
 	}
 	a.inner.Free()
+}
+
+// Reset frees all allocations in the arena and prepares it for reuse.
+// After Reset, the arena is ready for new allocations. Any Ptr[T] or Slice[T]
+// values allocated before the reset will panic on access with "use after reset".
+//
+// Panics if the arena has already been freed with Free().
+// Typically used indirectly via Pool.Put.
+//
+// Example:
+//
+//	a := safearena.New()
+//	data := safearena.Alloc(a, 42)
+//	a.Reset()
+//	// data.Get() would now panic: "use after reset"
+//	newData := safearena.Alloc(a, 100) // safe
+//	a.Free()
+func (a *Arena) Reset() {
+	if a.freed.Load() {
+		stack := captureStack(2)
+		panic(errorWithHint(a.id, "reset after free", stack, hintResetAfterFree))
+	}
+	a.inner.Free()
+	a.inner = arena.NewArena()
+	a.generation.Add(1)
 }
 
 // Scoped executes a function with an arena that's automatically freed.
@@ -192,8 +224,9 @@ func Clone[T any](p Ptr[T]) *T {
 // Slice is an arena-allocated slice with lifetime tracking.
 // Like Ptr[T], it tracks the arena lifetime and panics on use-after-free.
 type Slice[T any] struct {
-	slice []T
-	arena *Arena
+	slice      []T
+	arena      *Arena
+	generation uint64 // arena generation at allocation time; detects use-after-reset
 }
 
 // AllocSlice creates a lifetime-tracked slice of the given size.
@@ -219,8 +252,9 @@ func AllocSlice[T any](a *Arena, size int) Slice[T] {
 	slice := make([]T, size)
 
 	return Slice[T]{
-		slice: slice,
-		arena: a,
+		slice:      slice,
+		arena:      a,
+		generation: a.generation.Load(),
 	}
 }
 
@@ -240,6 +274,10 @@ func (s Slice[T]) Get() []T {
 	if s.arena.freed.Load() {
 		stack := captureStack(2)
 		panic(errorWithHint(s.arena.id, "use after free", stack, hintUseAfterFree))
+	}
+	if s.arena.generation.Load() != s.generation {
+		stack := captureStack(2)
+		panic(errorWithHint(s.arena.id, "use after reset", stack, hintUseAfterReset))
 	}
 	return s.slice
 }

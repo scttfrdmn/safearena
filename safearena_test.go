@@ -1,6 +1,8 @@
 package safearena
 
 import (
+	"strings"
+	"sync"
 	"testing"
 )
 
@@ -135,6 +137,157 @@ func TestRequestProcessing(t *testing.T) {
 	if resp.Result != "Processed: test" {
 		t.Error("wrong result")
 	}
+}
+
+func TestReset(t *testing.T) {
+	a := New()
+	data := Alloc(a, 42)
+	buf := AllocSlice[byte](a, 8)
+
+	// Values accessible before reset
+	if data.Deref() != 42 {
+		t.Fatal("expected 42 before reset")
+	}
+	if len(buf.Get()) != 8 {
+		t.Fatal("expected slice length 8 before reset")
+	}
+
+	a.Reset()
+
+	// New allocations after reset work fine
+	data2 := Alloc(a, 99)
+	if data2.Deref() != 99 {
+		t.Fatal("expected 99 after reset")
+	}
+
+	a.Free()
+
+	// Pre-reset Ptr panics with "use after reset"
+	t.Run("ptr panics after reset", func(t *testing.T) {
+		a2 := New()
+		old := Alloc(a2, 1)
+		a2.Reset()
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("expected panic")
+			}
+			if !strings.Contains(r.(string), "use after reset") {
+				t.Fatalf("expected 'use after reset', got: %v", r)
+			}
+		}()
+		_ = old.Get()
+	})
+
+	// Pre-reset Slice panics with "use after reset"
+	t.Run("slice panics after reset", func(t *testing.T) {
+		a3 := New()
+		old := AllocSlice[int](a3, 4)
+		a3.Reset()
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("expected panic")
+			}
+			if !strings.Contains(r.(string), "use after reset") {
+				t.Fatalf("expected 'use after reset', got: %v", r)
+			}
+		}()
+		_ = old.Get()
+	})
+}
+
+func TestResetAfterFree(t *testing.T) {
+	a := New()
+	a.Free()
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on reset after free")
+		}
+		if !strings.Contains(r.(string), "reset after free") {
+			t.Fatalf("expected 'reset after free', got: %v", r)
+		}
+	}()
+	a.Reset()
+}
+
+func TestResetMultipleTimes(t *testing.T) {
+	a := New()
+	for i := 0; i < 5; i++ {
+		p := Alloc(a, i)
+		if p.Deref() != i {
+			t.Fatalf("iteration %d: expected %d", i, i)
+		}
+		a.Reset()
+	}
+	a.Free()
+}
+
+func TestPool(t *testing.T) {
+	var pool Pool
+
+	a := pool.Get()
+	p := Alloc(a, 42)
+	if p.Deref() != 42 {
+		t.Fatal("expected 42")
+	}
+
+	pool.Put(a) // resets a; p is now invalid
+
+	t.Run("ptr panics after Put", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatal("expected panic after pool.Put")
+			}
+		}()
+		_ = p.Get()
+	})
+
+	// Arena retrieved from pool works correctly
+	a2 := pool.Get()
+	p2 := Alloc(a2, 99)
+	if p2.Deref() != 99 {
+		t.Fatal("expected 99 from pooled arena")
+	}
+	pool.Put(a2)
+}
+
+func TestPoolConcurrent(t *testing.T) {
+	var pool Pool
+	const goroutines = 20
+	const iters = 50
+
+	var wg sync.WaitGroup
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			for j := 0; j < iters; j++ {
+				a := pool.Get()
+				p := Alloc(a, n*1000+j)
+				if p.Deref() != n*1000+j {
+					t.Errorf("expected %d", n*1000+j)
+				}
+				pool.Put(a)
+			}
+		}(i)
+	}
+	wg.Wait()
+}
+
+func TestPoolPutFreedPanics(t *testing.T) {
+	var pool Pool
+	a := pool.Get()
+	a.Free()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic when Put-ing a freed arena")
+		}
+	}()
+	pool.Put(a)
 }
 
 func BenchmarkSafeArena(b *testing.B) {

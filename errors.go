@@ -67,4 +67,6 @@ const (
 	hintUseAfterFree   = "Arena was freed before this access. Use Clone() to copy values to heap, or ensure arena lifetime covers all uses."
 	hintDoubleFree     = "Arena.Free() was called twice. Make sure Free() is only called once, typically with defer."
 	hintAllocAfterFree = "Cannot allocate in a freed arena. Create a new arena or ensure this code runs before Free()."
+	hintUseAfterReset  = "Arena was reset before this access. Allocate new values after Reset(), or use Clone() to copy values to heap before calling Reset()."
+	hintResetAfterFree = "Arena.Reset() was called on a freed arena. Only Reset() a live arena; use New() to create a fresh one."
 )

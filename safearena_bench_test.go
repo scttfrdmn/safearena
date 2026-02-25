@@ -110,3 +110,32 @@ func BenchmarkSingleIntHeap(b *testing.B) {
 		_ = *p
 	}
 }
+
+// BenchmarkPool100Allocs vs BenchmarkNew100Allocs shows pool amortization.
+func BenchmarkPool100Allocs(b *testing.B) {
+	var pool Pool
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		a := pool.Get()
+		sum := 0
+		for j := 0; j < 100; j++ {
+			p := Alloc(a, j)
+			sum += p.Deref()
+		}
+		_ = sum
+		pool.Put(a)
+	}
+}
+
+func BenchmarkNew100Allocs(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		a := New()
+		sum := 0
+		for j := 0; j < 100; j++ {
+			p := Alloc(a, j)
+			sum += p.Deref()
+		}
+		_ = sum
+		a.Free()
+	}
+}
