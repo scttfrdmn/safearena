@@ -10,7 +10,7 @@
 [![codecov](https://codecov.io/gh/scttfrdmn/safearena/branch/main/graph/badge.svg)](https://codecov.io/gh/scttfrdmn/safearena)
 [![Go Reference](https://pkg.go.dev/badge/github.com/scttfrdmn/safearena.svg)](https://pkg.go.dev/github.com/scttfrdmn/safearena)
 [![Release](https://img.shields.io/github/v/release/scttfrdmn/safearena?style=flat)](https://github.com/scttfrdmn/safearena/releases)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/scttfrdmn/safearena/ci.yml?branch=main&label=CI&style=flat)](https://github.com/scttfrdmn/safearena/actions)
 
 </div>
