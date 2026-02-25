@@ -39,6 +39,8 @@ cmd/arenacheck/arenacheck
 /dist/
 coverage.out
 coverage.html
+coverage.txt
+*.prof
 
 # Example binaries
 examples/*/json_parser
