@@ -104,6 +104,42 @@ func badGoroutineCaptureGet() {
 	}()
 }
 
+// --- BAD patterns: struct field escapes ---
+
+// structHolder is used to test field-store escape detection.
+type structHolder struct {
+	ptr safearena.Ptr[int]
+	sl  safearena.Slice[byte]
+	raw *int
+}
+
+// Storing Ptr[T] into a field of a heap-allocated struct that escapes.
+func badFieldStoreHeapPtr(a *safearena.Arena) *structHolder {
+	s := &structHolder{}
+	s.ptr = safearena.Alloc(a, 42) // want `safearena\.Ptr escapes via struct field`
+	return s
+}
+
+// Storing Slice[T] into a field of a heap-allocated struct that escapes.
+func badFieldStoreHeapSlice(a *safearena.Arena) *structHolder {
+	s := &structHolder{}
+	s.sl = safearena.AllocSlice[byte](a, 64) // want `safearena\.Slice escapes via struct field`
+	return s
+}
+
+// Storing Ptr[T] into a field of a struct passed as a parameter — caller owns the struct.
+func badFieldStoreParam(s *structHolder, a *safearena.Arena) {
+	s.ptr = safearena.Alloc(a, 99) // want `safearena\.Ptr escapes via struct field`
+}
+
+// Storing raw *T from .Get() into a field of a heap-allocated struct.
+func badFieldStoreGetHeap(a *safearena.Arena) *structHolder {
+	s := &structHolder{}
+	p := safearena.Alloc(a, 42)
+	s.raw = p.Get() // want `\.Get\(\) escapes via struct field`
+	return s
+}
+
 // --- GOOD patterns: should NOT be flagged ---
 
 // Deref() returns a value copy — safe.
@@ -154,6 +190,14 @@ func goodLocalClosure() int {
 	p := safearena.Alloc(a, 42)
 	f := func() int { return p.Deref() } // captured but closure doesn't escape
 	return f()
+}
+
+// Storing Ptr[T] into a field of a purely stack-local struct — safe.
+// The struct (var s structHolder) is Alloc.Heap=false; it doesn't outlive the function.
+func goodFieldStoreLocalStruct(a *safearena.Arena) int {
+	var s structHolder
+	s.ptr = safearena.Alloc(a, 42)
+	return s.ptr.Deref()
 }
 
 // Reading slice contents locally — safe.

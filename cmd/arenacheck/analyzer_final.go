@@ -214,6 +214,27 @@ func isGlobalVar(val ssa.Value) bool {
 	return ok
 }
 
+// structBaseEscapes reports whether the struct pointer v may outlive the current
+// function — and therefore any arena-allocated value stored into one of its fields
+// could become a dangling pointer once the arena is freed.
+//
+// Two cases are flagged:
+//   - *ssa.Parameter: the struct was passed in by the caller and lives beyond this call.
+//   - *ssa.Alloc{Heap: true}: explicitly heap-allocated (new(T) or &T{}); may be
+//     returned or stored elsewhere, escaping the arena's scope.
+//
+// Stack-local structs (var s T, Alloc.Heap=false) are NOT flagged — their lifetime
+// is bounded by the current function, same as the arena.
+func structBaseEscapes(v ssa.Value) bool {
+	switch b := v.(type) {
+	case *ssa.Parameter:
+		return true
+	case *ssa.Alloc:
+		return b.Heap
+	}
+	return false
+}
+
 // checkUseAfterFree detects if an instruction uses an allocation after its arena was freed
 func checkUseAfterFree(pass *analysis.Pass, instr ssa.Instruction, allocations map[ssa.Value]*allocInfo, freedArenas map[ssa.Value]bool, storesTo map[ssa.Value]ssa.Value) {
 	// Get all operands of this instruction

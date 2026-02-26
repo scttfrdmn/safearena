@@ -5,13 +5,17 @@ package main
 // Detected patterns:
 //   - safearena.Ptr[T] or Slice[T] escaping via function return
 //   - safearena.Ptr[T] or Slice[T] stored to a global variable
+//   - safearena.Ptr[T] or Slice[T] stored to a field of an escaping struct
+//     (i.e. struct is a function parameter or heap-allocated with &T{}/new(T))
 //   - Raw *T / []T from a .Get() call escaping via return
 //   - Raw *T / []T from a .Get() call stored to a global variable
+//   - Raw *T / []T from a .Get() call stored to a field of an escaping struct
 //
 // Safe patterns (not flagged):
 //   - Calling .Deref() to obtain a copy of the value
 //   - Calling safearena.Clone() to copy to the heap
 //   - Calling .Get() and using the result only within the function scope
+//   - Storing Ptr[T]/Slice[T] into a field of a purely stack-local struct (var s T)
 
 import (
 	"go/token"
@@ -76,6 +80,14 @@ func checkFunctionForSafeArena(pass *analysis.Pass, fn *ssa.Function) {
 			case *ssa.Store:
 				if isGlobalVar(v.Addr) {
 					checkSafeArenaEscape(pass, v.Val, effectivePos(v.Val, storesTo, v.Pos()), getResults, storesTo, "global variable")
+				}
+				// Detect Ptr[T]/Slice[T] stored into a field of an escaping struct.
+				// An "escaping" struct is one whose pointer either came from the
+				// caller (function parameter) or was explicitly heap-allocated
+				// (new(T) or &T{} — Alloc.Heap=true). Stack-local structs
+				// (var s T, Alloc.Heap=false) are not flagged.
+				if fa, ok := v.Addr.(*ssa.FieldAddr); ok && structBaseEscapes(fa.X) {
+					checkSafeArenaEscape(pass, v.Val, effectivePos(v.Val, storesTo, v.Pos()), getResults, storesTo, "struct field")
 				}
 			}
 		}
