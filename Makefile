@@ -35,6 +35,10 @@ fmt-fix:
 lint:
 	staticcheck ./...
 
+## arenacheck: run arenacheck static analyzer (requires: go install .../cmd/arenacheck@latest)
+arenacheck:
+	GOEXPERIMENT=$(GOEXPERIMENT) go vet -vettool=$(shell which arenacheck) ./...
+
 ## check: run all quality checks (fmt, vet, lint, test)
 check: fmt vet lint test
 

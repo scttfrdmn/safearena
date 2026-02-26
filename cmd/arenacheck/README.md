@@ -235,6 +235,7 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
 - [SSA Package Documentation](https://pkg.go.dev/golang.org/x/tools/go/ssa)
 - [Writing Custom Analyzers](https://pkg.go.dev/golang.org/x/tools/go/analysis)
 - [Go Vet Guide](https://go.dev/doc/cmd/vet)
+- [CI Integration Guide](../../docs/CI_INTEGRATION.md) - Using arenacheck in CI and with golangci-lint
 
 ## License
 

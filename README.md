@@ -178,6 +178,7 @@ See the [examples/](examples/) directory for complete examples:
 - [Creative Solution](docs/CREATIVE_SOLUTION.md) - Deep dive into the design
 - [Arenacheck Results](docs/ARENACHECK_RESULTS.md) - Static analyzer evaluation
 - [Arenacheck README](cmd/arenacheck/README.md) - Static analyzer documentation
+- [CI Integration Guide](docs/CI_INTEGRATION.md) - Using arenacheck in CI and with golangci-lint
 
 ## Requirements
 
