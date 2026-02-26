@@ -305,17 +305,16 @@ func ExampleNewWithStats() {
 func ExamplePool_Stats() {
 	var pool safearena.Pool
 
-	// First call: pool empty, creates a new arena.
-	a := pool.Get()
-	pool.Put(a)
-
-	// Second call: pool has an arena, reuses it.
-	a2 := pool.Get()
-	pool.Put(a2)
+	for i := 0; i < 3; i++ {
+		a := pool.Get()
+		pool.Put(a)
+	}
 
 	s := pool.Stats()
-	fmt.Println(s.Gets, s.Created, s.Reused)
-	// Output: 2 1 1
+	// Gets and Puts are always deterministic.
+	// Created+Reused always equals Gets (sync.Pool may or may not reuse arenas).
+	fmt.Println(s.Gets, s.Puts, s.Created+s.Reused == s.Gets)
+	// Output: 3 3 true
 }
 
 // Example_safetyCheck demonstrates runtime safety checks.

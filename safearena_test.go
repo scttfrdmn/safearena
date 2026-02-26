@@ -345,22 +345,31 @@ func TestPoolStats(t *testing.T) {
 		t.Errorf("initial stats non-zero: %+v", p.Stats())
 	}
 
-	// First Get: pool empty → new arena created.
+	// First Get: pool empty → created (GC hasn't run yet).
 	a := p.Get()
-	if s := p.Stats(); s.Gets != 1 || s.Created != 1 || s.Reused != 0 {
-		t.Errorf("after first Get: %+v", s)
+	s1 := p.Stats()
+	if s1.Gets != 1 {
+		t.Errorf("after first Get: Gets=%d want 1", s1.Gets)
+	}
+	// Created+Reused must always equal Gets.
+	if s1.Created+s1.Reused != s1.Gets {
+		t.Errorf("after first Get: Created(%d)+Reused(%d) != Gets(%d)", s1.Created, s1.Reused, s1.Gets)
 	}
 
-	// Put: arena returned.
+	// Put: arena returned to pool.
 	p.Put(a)
 	if s := p.Stats(); s.Puts != 1 {
-		t.Errorf("after Put: %+v", s)
+		t.Errorf("after Put: Puts=%d want 1", s.Puts)
 	}
 
-	// Second Get: pool has arena → reused.
+	// Second Get: may reuse or create; invariant Created+Reused==Gets always holds.
 	a2 := p.Get()
 	defer p.Put(a2)
-	if s := p.Stats(); s.Gets != 2 || s.Reused != 1 || s.Created != 1 {
-		t.Errorf("after second Get: %+v", s)
+	s2 := p.Stats()
+	if s2.Gets != 2 {
+		t.Errorf("after second Get: Gets=%d want 2", s2.Gets)
+	}
+	if s2.Created+s2.Reused != s2.Gets {
+		t.Errorf("after second Get: Created(%d)+Reused(%d) != Gets(%d)", s2.Created, s2.Reused, s2.Gets)
 	}
 }
