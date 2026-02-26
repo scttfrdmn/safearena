@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Interprocedural analysis for arenacheck (cross-package escape detection)
 - awesome-go listing (PR #6026 submitted, pending maintainer review)
 
 ## [0.5.2] - 2026-02-26
