@@ -8,8 +8,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Interprocedural analysis for arenacheck
-- Production readiness improvements
+- Interprocedural analysis for arenacheck (cross-package escape detection)
+- awesome-go listing (PR #6026 submitted, pending maintainer review)
+
+## [0.5.2] - 2026-02-26
+
+### Fixed
+- Release workflow: removed Windows binary — `GOEXPERIMENT=arenas` is not supported on
+  Windows; Linux and macOS binaries are unaffected (closes #34)
+
+### Documentation
+- `PERFORMANCE.md`: new "Go Escape Analysis and Arena Allocations" section covering
+  `AllocSlice` heap-backing limitation, interface boxing escapes, closure captures, and
+  how to use `-gcflags=-m` to verify arena allocations (closes #35)
+
+## [0.5.1] - 2026-02-26
+
+### Fixed
+- `NewWithFinalizer`: leak warning now written to `stderr` instead of `stdout`
+- `AllocSlice`: panics with descriptive `"negative size N"` message on negative input;
+  previously delegated to the Go runtime with a cryptic message
+- Added `TestAllocSliceNegativeSize` test
+
+### Documentation
+- `Ptr[T]` godoc: documents memory retention behaviour — the Arena control struct
+  (~64 bytes) stays alive while any `Ptr[T]` is reachable, but the allocation pool is
+  reclaimed on `Free()`/`Reset()`
+- `README`: added Thread Safety section with per-goroutine arena pattern examples
+- `README`: added arenacheck known limitations to Static Analysis section
+
+## [0.5.0] - 2026-02-26
+
+### Added
+- **arenacheck: closure and goroutine escape detection** (closes #31)
+  - Detects `Ptr[T]`/`Slice[T]` values captured by returned closures
+  - Detects `Ptr[T]`/`Slice[T]` values captured by goroutine launches
+  - Detects `.Get()` results captured by either pattern
+  - New test cases in `testdata/src/satest/patterns.go`
+- **Arena allocation statistics** — opt-in via `NewWithStats()` (closes #32)
+  - `ArenaStats` struct with `AllocCount` field
+  - `(a *Arena) Stats() ArenaStats` method
+  - Zero overhead on normal arenas (nil pointer check)
+- **Pool statistics** — always available via atomic counters (closes #32)
+  - `PoolStats` struct: `Gets`, `Puts`, `Created`, `Reused`
+  - `(p *Pool) Stats() PoolStats` method
+  - `ExampleNewWithStats` and `ExamplePool_Stats` godoc examples
+
+### Fixed
+- `TestPoolStats` and `ExamplePool_Stats`: assert `Created+Reused == Gets` invariant
+  rather than specific split — `sync.Pool` is non-deterministic under GC pressure
+
+## [0.4.7] - 2026-02-25
+
+### Documentation
+- Added `docs/CI_INTEGRATION.md`: comprehensive guide for running arenacheck in CI
+  pipelines with `go vet -vettool`, GitHub Actions workflow example, golangci-lint
+  compatibility note, and detection table (closes #33)
+- Added `arenacheck` target to `Makefile`
+- Linked CI guide from `README.md` and `cmd/arenacheck/README.md`
+
+## [0.4.6] - 2026-02-25
+
+### Added
+- `Makefile` with targets: `build`, `test`, `test-race`, `vet`, `fmt`, `lint`,
+  `arenacheck`, `check`, `install-tools`, `clean`, `help`
+- 14 additional godoc examples in `example_test.go`: `ExampleArena_Reset`,
+  `ExamplePool`, `ExampleNewStringBuilder`, `ExampleNewWithFinalizer`, and more
+
+## [0.4.5] - 2026-02-25
+
+### Documentation
+- Clarified arenacheck checker scope and detection rate in docs and FAQ
+- Updated known limitations section
+
+## [0.4.4] - 2026-02-25
+
+### Fixed
+- Audit round 2: Pool safety documentation, arenacheck `interface{}` escape detection,
+  `captureStack` fallback handling, `Deref` docstring corrections
+
+## [0.4.3] - 2026-02-25
+
+### Fixed
+- Release workflow: use `go test .` (not `./...`) to avoid coverage tool errors on
+  example `main` packages; `cd` into `cmd/arenacheck` before building
+
+## [0.4.2] - 2026-02-25
+
+### Fixed
+- Wrong `AllocSlice` doc comment (said arena-allocated, backing array is heap-allocated)
+- `StringBuilder` overflow error message format
+- Added missing `ExampleSlice_Get` godoc example
+- `gofmt -s` alignment in `errors.go` const block
+
+## [0.4.1] - 2026-02-25
+
+### Added
+- `Arena.Reset()`: frees all allocations and prepares arena for reuse; existing
+  `Ptr[T]`/`Slice[T]` values panic with `"use after reset"` on access
+- `Pool`: thread-safe arena pool via `sync.Pool` for high-throughput workloads;
+  `Pool.Put` resets and returns the arena, `Pool.Get` retrieves or creates one
+- arenacheck: detects unsafe usage of `safearena.Ptr[T]` and `Slice[T]` — direct
+  returns, global stores, `.Get()` result escapes, `interface{}` wrapping (closes #28)
+- `ScopedVoid` (replaces deprecated `ScopedPtr`) for fire-and-forget arena scopes
+
+### Changed
+- Removed `ArenaOpt`/`PtrOpt` tier — consolidated into single API (closes #27)
+- License changed from MIT to Apache 2.0
+- CI: added `gofmt -s` check; Go Report Card A+ required
+
+### Fixed
+- Security fixes from senior engineer review (input validation, error message
+  consistency, `captureStack` correctness)
+- CI: excluded example `main` packages from coverage instrumentation
+- CI: resolved `staticcheck` SA4010 false positive; removed unsupported Windows matrix
 
 ## [0.4.0] - 2026-02-03
 
@@ -154,7 +266,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small runtime overhead (~13% vs raw arenas)
 - Not production-ready (experimental arena package)
 
-[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/scttfrdmn/safearena/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/scttfrdmn/safearena/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/scttfrdmn/safearena/compare/v0.4.7...v0.5.0
+[0.4.7]: https://github.com/scttfrdmn/safearena/compare/v0.4.6...v0.4.7
+[0.4.6]: https://github.com/scttfrdmn/safearena/compare/v0.4.5...v0.4.6
+[0.4.5]: https://github.com/scttfrdmn/safearena/compare/v0.4.4...v0.4.5
+[0.4.4]: https://github.com/scttfrdmn/safearena/compare/v0.4.3...v0.4.4
+[0.4.3]: https://github.com/scttfrdmn/safearena/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/scttfrdmn/safearena/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/scttfrdmn/safearena/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/scttfrdmn/safearena/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/scttfrdmn/safearena/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scttfrdmn/safearena/compare/v0.1.0...v0.2.0
