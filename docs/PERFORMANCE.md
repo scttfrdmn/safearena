@@ -393,6 +393,63 @@ fmt.Printf("Pause time: %v\n", m2.PauseTotal-m1.PauseTotal)
 fmt.Printf("Heap alloc: %d MB\n", (m2.HeapAlloc-m1.HeapAlloc)/1024/1024)
 ```
 
+## Go Escape Analysis and Arena Allocations
+
+Understanding how Go's escape analysis interacts with SafeArena helps you avoid
+surprises and verify that your allocations are landing where you expect.
+
+### How to inspect escape decisions
+
+```bash
+# Show all escape analysis decisions
+GOEXPERIMENT=arenas go build -gcflags="-m" ./...
+
+# More detail (two -m flags)
+GOEXPERIMENT=arenas go build -gcflags="-m -m" ./...
+```
+
+Look for lines like:
+```
+./myfile.go:12:20: &MyStruct{} does not escape   ← stays in arena ✅
+./myfile.go:17:14: *ptr escapes to heap           ← escaped ⚠️
+```
+
+### AllocSlice backing arrays are always heap-allocated
+
+`AllocSlice[T]` uses `make([]T, size)` for the backing array. This is a
+limitation of Go's arena API — there is no arena-backed slice primitive.
+The `Slice[T]` wrapper still provides full lifetime safety, but the memory
+itself lives on the regular heap, not inside the arena.
+
+```go
+// The Slice[T] header is arena-tracked, but the backing array is on the heap.
+buf := safearena.AllocSlice[byte](a, 4096)
+```
+
+For workloads where this matters, prefer allocating structs with `Alloc` and
+embedding fixed-size arrays rather than using `AllocSlice` for large buffers.
+
+### Interface wrapping can cause heap escapes
+
+Passing arena-allocated values through `interface{}` / `any` may cause the
+underlying value to escape to the heap, defeating the arena benefit:
+
+```go
+// ⚠️ May escape: interface boxing can force heap allocation
+var v any = safearena.Alloc(a, MyStruct{})
+
+// ✅ Prefer: use concrete types throughout the arena scope
+p := safearena.Alloc(a, MyStruct{})
+process(p.Get()) // pass *MyStruct directly
+```
+
+### Closures and goroutines
+
+Values captured by closures or goroutine launches may escape to the heap.
+`arenacheck` detects these patterns statically. Additionally, the Go compiler
+may heap-allocate captured variables — check with `-gcflags="-m"` if
+allocation counts matter.
+
 ## Conclusion
 
 SafeArena provides:

@@ -44,8 +44,7 @@ jobs:
         # macOS arm64
         GOOS=darwin GOARCH=arm64 go build -o ../../dist/arenacheck-darwin-arm64 .
 
-        # Windows amd64
-        GOOS=windows GOARCH=amd64 go build -o ../../dist/arenacheck-windows-amd64.exe .
+        # Windows: GOEXPERIMENT=arenas is not supported on Windows, so no binary is built.
       env:
         GOEXPERIMENT: arenas
 
