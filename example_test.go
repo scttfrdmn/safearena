@@ -222,6 +222,72 @@ func Example_requestProcessing() {
 	// Output: Status: 200, Result: processed
 }
 
+// ExampleArena_Reset shows how to reuse an arena without allocating a new one.
+func ExampleArena_Reset() {
+	a := safearena.New()
+	defer a.Free()
+
+	// First use
+	p1 := safearena.Alloc(a, 42)
+	fmt.Println(p1.Deref())
+
+	// Reset reclaims all memory; existing Ptr[T] values are invalidated
+	a.Reset()
+
+	// Arena is ready for reuse; allocate fresh values
+	p2 := safearena.Alloc(a, 99)
+	fmt.Println(p2.Deref())
+
+	// Output:
+	// 42
+	// 99
+}
+
+// ExamplePool demonstrates arena reuse across multiple calls using a Pool.
+func ExamplePool() {
+	var pool safearena.Pool
+
+	process := func(n int) int {
+		a := pool.Get()
+		defer pool.Put(a)
+
+		p := safearena.Alloc(a, n*2)
+		return p.Deref()
+	}
+
+	fmt.Println(process(10))
+	fmt.Println(process(21))
+	// Output:
+	// 20
+	// 42
+}
+
+// ExampleNewStringBuilder demonstrates arena-allocated string building.
+func ExampleNewStringBuilder() {
+	result := safearena.Scoped(func(a *safearena.Arena) string {
+		sb := safearena.NewStringBuilder(a, 64)
+		sb.Get().Append("Hello")
+		sb.Get().Append(", ")
+		sb.Get().Append("World!")
+		return sb.Get().String()
+	})
+
+	fmt.Println(result)
+	// Output: Hello, World!
+}
+
+// ExampleNewWithFinalizer demonstrates leak detection for arenas.
+func ExampleNewWithFinalizer() {
+	// NewWithFinalizer prints a warning if the arena is GC'd without Free().
+	// Use during development/testing to catch arena leaks.
+	a := safearena.NewWithFinalizer()
+	defer a.Free() // Without this, a warning would print at GC time
+
+	p := safearena.Alloc(a, 7)
+	fmt.Println(p.Deref())
+	// Output: 7
+}
+
 // Example_safetyCheck demonstrates runtime safety checks.
 func Example_safetyCheck() {
 	defer func() {
