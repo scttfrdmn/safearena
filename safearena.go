@@ -248,7 +248,7 @@ func AllocSlice[T any](a *Arena, size int) Slice[T] {
 		panic(errorWithHint(a.id, "allocation after free", stack, hintAllocAfterFree))
 	}
 
-	// Allocate backing array in arena
+	// Allocate backing array on heap (Go arena API limitation: slice data cannot be arena-allocated)
 	slice := make([]T, size)
 
 	return Slice[T]{
@@ -310,7 +310,8 @@ func (sb *StringBuilder) Append(s string) {
 	buf := sb.buffers.Get()
 	available := len(buf) - sb.length
 	if len(s) > available {
-		panic(fmt.Sprintf("safearena: StringBuilder overflow: capacity %d, used %d, appending %d bytes", len(buf), sb.length, len(s)))
+		stack := captureStack(2)
+		panic(errorWithHint(sb.buffers.arena.id, fmt.Sprintf("StringBuilder overflow (capacity %d, used %d, appending %d bytes)", len(buf), sb.length, len(s)), stack, hintStringBuilderOverflow))
 	}
 	copy(buf[sb.length:], s)
 	sb.length += len(s)

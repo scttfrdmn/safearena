@@ -124,6 +124,28 @@ func ExampleArena_Free() {
 	// Output: 42
 }
 
+// ExampleSlice_Get demonstrates accessing an arena-allocated slice.
+func ExampleSlice_Get() {
+	result := safearena.Scoped(func(a *safearena.Arena) int {
+		nums := safearena.AllocSlice[int](a, 5)
+
+		// Get returns the underlying slice, valid while the arena is alive
+		slice := nums.Get()
+		for i := range slice {
+			slice[i] = i + 1 // 1, 2, 3, 4, 5
+		}
+
+		sum := 0
+		for _, v := range slice {
+			sum += v
+		}
+		return sum
+	})
+
+	fmt.Println(result)
+	// Output: 15
+}
+
 // ExamplePtr_Get demonstrates safe pointer dereferencing.
 func ExamplePtr_Get() {
 	result := safearena.Scoped(func(a *safearena.Arena) string {
