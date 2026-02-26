@@ -73,6 +73,37 @@ func badInterfaceEscape() interface{} {
 	return interface{}(p) // want "safearena.Ptr escapes via return"
 }
 
+// Returning a closure that captures Ptr[T] — callable after arena is freed.
+func badClosureCapture() func() int {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	return func() int { // want `safearena\.Ptr captured by closure return`
+		return p.Deref()
+	}
+}
+
+// Goroutine that captures Ptr[T] — races with a.Free().
+func badGoroutineCapture() {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	go func() { // want `safearena\.Ptr captured by goroutine launch`
+		_ = p.Deref()
+	}()
+}
+
+// Goroutine that captures the raw *T from .Get() — same hazard.
+func badGoroutineCaptureGet() {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	raw := p.Get()
+	go func() { // want `\.Get\(\) captured by goroutine launch`
+		_ = *raw
+	}()
+}
+
 // --- GOOD patterns: should NOT be flagged ---
 
 // Deref() returns a value copy — safe.
@@ -114,6 +145,15 @@ func goodScopedClone() *int {
 		p := safearena.Alloc(a, 7)
 		return safearena.Clone(p)
 	})
+}
+
+// Closure called locally before defer fires — not an escape, safe.
+func goodLocalClosure() int {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	f := func() int { return p.Deref() } // captured but closure doesn't escape
+	return f()
 }
 
 // Reading slice contents locally — safe.

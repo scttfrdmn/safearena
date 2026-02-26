@@ -80,6 +80,112 @@ func checkFunctionForSafeArena(pass *analysis.Pass, fn *ssa.Function) {
 			}
 		}
 	}
+
+	// Third pass: check for SafeArena values captured by closures or goroutines.
+	checkClosureAndGoroutineEscapes(pass, fn, getResults, storesTo)
+}
+
+// checkClosureAndGoroutineEscapes detects SafeArena values captured by closures
+// that escape the enclosing function via return or goroutine launch. Such captures
+// are unsafe because the arena may be freed before the closure runs.
+//
+// Detected patterns:
+//   - return func() { ... uses p ... }  where p is Ptr[T] or Slice[T]
+//   - go func() { ... uses p ... }()    where p is Ptr[T] or Slice[T]
+//   - Same patterns for raw *T / []T results from .Get()
+func checkClosureAndGoroutineEscapes(pass *analysis.Pass, fn *ssa.Function, getResults map[ssa.Value]bool, storesTo map[ssa.Value]ssa.Value) {
+	type closureEscape struct {
+		mc   *ssa.MakeClosure
+		kind string
+		pos  token.Pos
+	}
+
+	seenMC := make(map[*ssa.MakeClosure]bool)
+	var escapingClosures []closureEscape
+
+	addEscape := func(mc *ssa.MakeClosure, kind string, pos token.Pos) {
+		if seenMC[mc] {
+			return
+		}
+		seenMC[mc] = true
+		escapingClosures = append(escapingClosures, closureEscape{mc, kind, pos})
+	}
+
+	for _, block := range fn.Blocks {
+		for _, instr := range block.Instrs {
+			switch v := instr.(type) {
+			case *ssa.Go:
+				// go func() { captures p }()
+				if mc, ok := v.Call.Value.(*ssa.MakeClosure); ok {
+					addEscape(mc, "goroutine launch", v.Pos())
+				}
+			case *ssa.Return:
+				for _, r := range v.Results {
+					if mc, ok := canonicalSource(r, storesTo).(*ssa.MakeClosure); ok {
+						// Use the Return instruction's position (mc.Pos() is 0 for closures in SSA).
+						addEscape(mc, "closure return", v.Pos())
+					}
+				}
+			case *ssa.Store:
+				if isGlobalVar(v.Addr) {
+					if mc, ok := canonicalSource(v.Val, storesTo).(*ssa.MakeClosure); ok {
+						addEscape(mc, "global variable", v.Pos())
+					}
+				}
+			}
+		}
+	}
+
+	// Per the SSA spec: Bindings[i].Type() == *FreeVars[i].Type()
+	// FreeVars gives us the actual captured type (e.g. Ptr[int]);
+	// Bindings gives us the address of the capture cell (e.g. *Ptr[int]).
+	// We use FreeVars for type-based checks and storesTo[Binding] for .Get() tracing.
+	reportedBindings := make(map[ssa.Value]bool)
+	for _, esc := range escapingClosures {
+		innerFn, ok := esc.mc.Fn.(*ssa.Function)
+		if !ok {
+			continue
+		}
+		pos := esc.pos
+		if !pos.IsValid() {
+			pos = esc.mc.Pos()
+		}
+		if !pos.IsValid() {
+			continue
+		}
+		for i, fv := range innerFn.FreeVars {
+			if i >= len(esc.mc.Bindings) {
+				break
+			}
+			binding := esc.mc.Bindings[i]
+			if reportedBindings[binding] {
+				continue
+			}
+			// Go SSA represents captured variables as pointers to their heap-allocated
+			// capture cells: FreeVar.Type() == *ActualCapturedType. Unwrap one level.
+			fvElemType := fv.Type()
+			if ptr, ok := fvElemType.(*types.Pointer); ok {
+				fvElemType = ptr.Elem()
+			}
+			// Check if the captured variable is a SafeArena wrapper type.
+			if name := safeArenaWrapperTypeName(fvElemType); name != "" {
+				pass.Reportf(pos, "safearena.%s captured by %s; use Deref() or Clone() before creating the closure",
+					name, esc.kind)
+				reportedBindings[binding] = true
+				continue
+			}
+			// Check if the captured variable holds a .Get() result.
+			// binding is the address of the capture cell; storesTo[binding] is what was stored.
+			if content, found := storesTo[binding]; found {
+				visited := make(map[ssa.Value]bool)
+				if tracesBackToGet(content, getResults, storesTo, visited) {
+					pass.Reportf(pos, "raw pointer from safearena .Get() captured by %s; arena may be freed before closure runs",
+						esc.kind)
+					reportedBindings[binding] = true
+				}
+			}
+		}
+	}
 }
 
 // checkSafeArenaEscape reports a diagnostic if val is an unsafe SafeArena value.

@@ -17,7 +17,9 @@ func (a *Arena) Reset() {}
 
 // Ptr is a pointer that knows which arena it belongs to.
 // Returning a Ptr[T] from a function is unsafe — use Deref() or Clone() instead.
-type Ptr[T any] struct{}
+// Note: must be non-zero size so that the Go compiler generates closure bindings for
+// captured Ptr[T] values (zero-size types may be elided by the capture analysis).
+type Ptr[T any] struct{ arena *Arena }
 
 // Get safely dereferences the pointer.
 // The returned raw pointer is only valid while the arena is alive.
@@ -28,7 +30,8 @@ func (p Ptr[T]) Deref() T { var zero T; return zero }
 
 // Slice is an arena-allocated slice with lifetime tracking.
 // Returning a Slice[T] from a function is unsafe — copy the contents instead.
-type Slice[T any] struct{}
+// Note: must be non-zero size for the same reason as Ptr[T].
+type Slice[T any] struct{ arena *Arena }
 
 // Get returns the underlying slice.
 // The returned slice is only valid while the arena is alive.

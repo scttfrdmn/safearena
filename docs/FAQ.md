@@ -141,7 +141,7 @@ arenacheck is a static analyzer that catches bugs at compile time:
 - Detects usage after Free()
 - Integrates with `go vet`
 
-Detection rate: ~100% on common patterns (direct returns, global stores, `.Get()` results, `interface{}` wrapping). Known gaps: escapes through struct fields, channels, maps, and interprocedural calls — see [Current limitations](#arenacheck-not-finding-issues) below.
+Detection rate: ~100% on common patterns (direct returns, global stores, `.Get()` results, `interface{}` wrapping, closure captures, goroutine launches). Known gaps: escapes through struct fields, channels, maps, and interprocedural calls — see [Current limitations](#arenacheck-not-finding-issues) below.
 
 ### Is it safe for concurrent use?
 
@@ -343,9 +343,9 @@ Your test is accessing arena data after the arena was freed.
 arenacheck is conservative to avoid false positives. Some patterns require interprocedural analysis (future enhancement).
 
 **Current limitations:**
-- Escapes through interfaces
-- Escapes through reflection
-- Complex dataflow patterns
+- Escapes through struct fields
+- Escapes through channels or maps
+- Interprocedural escape paths
 
 ### Performance worse than expected
 

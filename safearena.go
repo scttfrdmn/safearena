@@ -19,6 +19,17 @@ type Arena struct {
 	freed      atomic.Bool
 	generation atomic.Uint64
 	// Removed: objects sync.Map (unused, caused 10x slowdown)
+	stats *arenaStatCounters // nil unless created with NewWithStats
+}
+
+// arenaStatCounters holds the mutable counters for stats-enabled arenas.
+type arenaStatCounters struct {
+	allocCount atomic.Int64
+}
+
+// ArenaStats holds runtime statistics for an Arena created with NewWithStats.
+type ArenaStats struct {
+	AllocCount int64 // total Alloc and AllocSlice calls
 }
 
 // Ptr is a pointer that knows which arena it belongs to
@@ -60,6 +71,9 @@ func Alloc[T any](a *Arena, value T) Ptr[T] {
 	if a.freed.Load() {
 		stack := captureStack(2)
 		panic(errorWithHint(a.id, "allocation after free", stack, hintAllocAfterFree))
+	}
+	if a.stats != nil {
+		a.stats.allocCount.Add(1)
 	}
 
 	ptr := arena.New[T](a.inner)
@@ -247,6 +261,9 @@ func AllocSlice[T any](a *Arena, size int) Slice[T] {
 		stack := captureStack(2)
 		panic(errorWithHint(a.id, "allocation after free", stack, hintAllocAfterFree))
 	}
+	if a.stats != nil {
+		a.stats.allocCount.Add(1)
+	}
 
 	// Allocate backing array on heap (Go arena API limitation: slice data cannot be arena-allocated)
 	slice := make([]T, size)
@@ -321,6 +338,33 @@ func (sb *StringBuilder) Append(s string) {
 func (sb *StringBuilder) String() string {
 	buf := sb.buffers.Get()
 	return string(buf[:sb.length])
+}
+
+// NewWithStats creates an arena that tracks allocation statistics.
+// Use a.Stats() to read the counters at any time.
+// Normal arenas (created with New) do not track stats to avoid overhead on hot paths.
+//
+// Example:
+//
+//	a := safearena.NewWithStats()
+//	defer a.Free()
+//	safearena.Alloc(a, "hello")
+//	fmt.Println(a.Stats().AllocCount) // 1
+func NewWithStats() *Arena {
+	return &Arena{
+		inner: arena.NewArena(),
+		id:    arenaCounter.Add(1),
+		stats: &arenaStatCounters{},
+	}
+}
+
+// Stats returns the current allocation statistics for the arena.
+// Returns zero values if the arena was not created with NewWithStats.
+func (a *Arena) Stats() ArenaStats {
+	if a.stats == nil {
+		return ArenaStats{}
+	}
+	return ArenaStats{AllocCount: a.stats.allocCount.Load()}
 }
 
 // NewWithFinalizer creates an arena with a finalizer that detects leaked arenas.

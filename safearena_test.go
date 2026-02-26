@@ -313,3 +313,54 @@ func BenchmarkRegularAlloc(b *testing.B) {
 		}
 	}
 }
+
+func TestArenaStats(t *testing.T) {
+	// New() has no stats tracking.
+	a := New()
+	defer a.Free()
+	Alloc(a, 42)
+	if s := a.Stats(); s.AllocCount != 0 {
+		t.Errorf("New() arena: expected AllocCount=0, got %d", s.AllocCount)
+	}
+
+	// NewWithStats() tracks allocs.
+	b := NewWithStats()
+	defer b.Free()
+	if s := b.Stats(); s.AllocCount != 0 {
+		t.Errorf("initial AllocCount: want 0, got %d", s.AllocCount)
+	}
+	Alloc(b, 1)
+	Alloc(b, 2)
+	AllocSlice[byte](b, 10)
+	if s := b.Stats(); s.AllocCount != 3 {
+		t.Errorf("AllocCount: want 3, got %d", s.AllocCount)
+	}
+}
+
+func TestPoolStats(t *testing.T) {
+	var p Pool
+
+	// Initial state.
+	if s := p.Stats(); s.Gets != 0 || s.Puts != 0 || s.Created != 0 || s.Reused != 0 {
+		t.Errorf("initial stats non-zero: %+v", p.Stats())
+	}
+
+	// First Get: pool empty → new arena created.
+	a := p.Get()
+	if s := p.Stats(); s.Gets != 1 || s.Created != 1 || s.Reused != 0 {
+		t.Errorf("after first Get: %+v", s)
+	}
+
+	// Put: arena returned.
+	p.Put(a)
+	if s := p.Stats(); s.Puts != 1 {
+		t.Errorf("after Put: %+v", s)
+	}
+
+	// Second Get: pool has arena → reused.
+	a2 := p.Get()
+	defer p.Put(a2)
+	if s := p.Stats(); s.Gets != 2 || s.Reused != 1 || s.Created != 1 {
+		t.Errorf("after second Get: %+v", s)
+	}
+}

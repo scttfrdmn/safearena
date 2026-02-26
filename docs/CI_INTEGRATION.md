@@ -86,6 +86,9 @@ Then run it with `make arenacheck`.
 | Storing `Ptr[T]` or `Slice[T]` to a global variable | `safearena.Ptr escapes via global variable` |
 | Returning raw `*T` from `.Get()` | `raw pointer from safearena .Get() escapes via return` |
 | Wrapping `Ptr[T]` in `interface{}` and returning | `safearena.Ptr escapes via return` |
+| `Ptr[T]` captured by a returned closure | `safearena.Ptr captured by closure return` |
+| `Ptr[T]` captured by a goroutine launch | `safearena.Ptr captured by goroutine launch` |
+| Raw `*T` from `.Get()` captured by closure/goroutine | `raw pointer from safearena .Get() captured by ...` |
 | Using raw arena allocation after `Free()` | `use of arena allocation after Free()` |
 
 ## Known limitations
@@ -93,8 +96,7 @@ Then run it with `make arenacheck`.
 arenacheck uses single-function SSA analysis and does not currently detect:
 - Escapes through struct fields
 - Escapes through channels or maps
-- `Ptr[T]` captured by closures or goroutines
-- Interprocedural escape paths
+- Interprocedural escape paths (e.g. `Ptr[T]` passed to a function that stores it globally)
 
 For these patterns, rely on runtime safety checks (SafeArena panics on use-after-free)
 and the race detector (`go test -race`).

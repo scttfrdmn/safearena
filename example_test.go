@@ -288,6 +288,36 @@ func ExampleNewWithFinalizer() {
 	// Output: 7
 }
 
+// ExampleNewWithStats demonstrates arena allocation statistics.
+func ExampleNewWithStats() {
+	a := safearena.NewWithStats()
+	defer a.Free()
+
+	safearena.Alloc(a, 1)
+	safearena.Alloc(a, 2)
+	safearena.AllocSlice[byte](a, 64)
+
+	fmt.Println(a.Stats().AllocCount)
+	// Output: 3
+}
+
+// ExamplePool_Stats demonstrates pool hit-rate tracking.
+func ExamplePool_Stats() {
+	var pool safearena.Pool
+
+	// First call: pool empty, creates a new arena.
+	a := pool.Get()
+	pool.Put(a)
+
+	// Second call: pool has an arena, reuses it.
+	a2 := pool.Get()
+	pool.Put(a2)
+
+	s := pool.Stats()
+	fmt.Println(s.Gets, s.Created, s.Reused)
+	// Output: 2 1 1
+}
+
 // Example_safetyCheck demonstrates runtime safety checks.
 func Example_safetyCheck() {
 	defer func() {
