@@ -27,6 +27,7 @@ func runFinal2(pass *analysis.Pass) (interface{}, error) {
 			continue
 		}
 		checkFunctionFinal2(pass, fn)
+		checkFunctionForSafeArena(pass, fn)
 	}
 
 	return nil, nil

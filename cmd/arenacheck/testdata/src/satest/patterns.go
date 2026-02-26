@@ -1,0 +1,122 @@
+// Package satest contains test cases for arenacheck's safearena-specific analysis.
+// Bad patterns (marked with want comments) should be flagged.
+// Good patterns (no want comments) should produce no diagnostic.
+package satest
+
+import "github.com/scttfrdmn/safearena"
+
+// --- BAD patterns: should be flagged ---
+
+// Returning Ptr[T] leaks the arena wrapper beyond the function's lifetime.
+func badReturnPtr() safearena.Ptr[int] {
+	a := safearena.New()
+	defer a.Free()
+	return safearena.Alloc(a, 42) // want "safearena.Ptr escapes via return"
+}
+
+// Returning Slice[T] leaks the arena wrapper beyond the function's lifetime.
+func badReturnSlice() safearena.Slice[byte] {
+	a := safearena.New()
+	defer a.Free()
+	return safearena.AllocSlice[byte](a, 100) // want "safearena.Slice escapes via return"
+}
+
+// Returning the raw *T from .Get() — arena may be freed when caller uses it.
+func badReturnGet() *int {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	return p.Get() // want `\.Get\(\) escapes via return`
+}
+
+// Returning the raw []T from Slice.Get().
+func badReturnSliceGet() []byte {
+	a := safearena.New()
+	defer a.Free()
+	s := safearena.AllocSlice[byte](a, 64)
+	return s.Get() // want `\.Get\(\) escapes via return`
+}
+
+// Storing Ptr[T] to a global outlives the arena.
+var globalPtr safearena.Ptr[int]
+
+func badGlobalPtr() {
+	a := safearena.New()
+	defer a.Free()
+	globalPtr = safearena.Alloc(a, 42) // want "safearena.Ptr escapes via global variable"
+}
+
+// Storing Slice[T] to a global.
+var globalSlice safearena.Slice[byte]
+
+func badGlobalSlice() {
+	a := safearena.New()
+	defer a.Free()
+	globalSlice = safearena.AllocSlice[byte](a, 64) // want "safearena.Slice escapes via global variable"
+}
+
+// Storing raw *T from .Get() to a global.
+var globalRaw *int
+
+func badGlobalGet() {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	globalRaw = p.Get() // want `\.Get\(\) escapes via global variable`
+}
+
+// --- GOOD patterns: should NOT be flagged ---
+
+// Deref() returns a value copy — safe.
+func goodDeref() int {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	return p.Deref()
+}
+
+// Clone() copies to the heap — safe.
+func goodClone() *int {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	return safearena.Clone(p)
+}
+
+// Using Get() only within the function scope — safe.
+func goodLocalGet() int {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	val := p.Get()
+	return *val // dereferences the pointer; returns the int value, not the pointer
+}
+
+// Using Scoped with a safe return type — safe.
+func goodScoped() int {
+	return safearena.Scoped(func(a *safearena.Arena) int {
+		p := safearena.Alloc(a, 99)
+		return p.Deref()
+	})
+}
+
+// Using Scoped with Clone — safe.
+func goodScopedClone() *int {
+	return safearena.Scoped(func(a *safearena.Arena) *int {
+		p := safearena.Alloc(a, 7)
+		return safearena.Clone(p)
+	})
+}
+
+// Reading slice contents locally — safe.
+func goodSliceLocal() int {
+	a := safearena.New()
+	defer a.Free()
+	s := safearena.AllocSlice[int](a, 3)
+	slice := s.Get()
+	total := 0
+	for _, v := range slice {
+		total += v
+	}
+	return total
+}
