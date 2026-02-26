@@ -89,12 +89,13 @@ Then run it with `make arenacheck`.
 | `Ptr[T]` captured by a returned closure | `safearena.Ptr captured by closure return` |
 | `Ptr[T]` captured by a goroutine launch | `safearena.Ptr captured by goroutine launch` |
 | Raw `*T` from `.Get()` captured by closure/goroutine | `raw pointer from safearena .Get() captured by ...` |
+| `Ptr[T]` stored in a field of an escaping struct | `safearena.Ptr escapes via struct field` |
+| Raw `*T` from `.Get()` stored in a field of an escaping struct | `raw pointer from safearena .Get() escapes via struct field` |
 | Using raw arena allocation after `Free()` | `use of arena allocation after Free()` |
 
 ## Known limitations
 
 arenacheck uses single-function SSA analysis and does not currently detect:
-- Escapes through struct fields
 - Escapes through channels or maps
 - Interprocedural escape paths (e.g. `Ptr[T]` passed to a function that stores it globally)
 

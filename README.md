@@ -130,9 +130,10 @@ GOEXPERIMENT=arenas go vet -vettool=$(which arenacheck) ./...
 ```
 
 arenacheck detects ~100% of common escape patterns (direct returns, global stores,
-`.Get()` results, `interface{}` wrapping, closure captures, goroutine launches).
-**Known gaps:** escapes through struct fields, channels, maps, and interprocedural
-calls across package boundaries. See [CI Integration Guide](docs/CI_INTEGRATION.md) for details.
+`.Get()` results, `interface{}` wrapping, closure captures, goroutine launches,
+and struct field stores into escaping structs).
+**Known gaps:** escapes through channels, maps, and interprocedural calls across
+package boundaries. See [CI Integration Guide](docs/CI_INTEGRATION.md) for details.
 
 ## Thread Safety
 
