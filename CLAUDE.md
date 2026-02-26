@@ -15,7 +15,7 @@ GOEXPERIMENT=arenas go test .               # run all tests (root package only)
 GOEXPERIMENT=arenas go test -race .         # with race detector
 GOEXPERIMENT=arenas go vet ./...
 staticcheck ./...                           # lint (requires: go install honnef.co/go/tools/cmd/staticcheck@latest)
-gofmt -l .                                  # must return empty
+gofmt -s -l .                               # must return empty (-s = simplify, required for A+ on goreportcard)
 ```
 
 ## Project Tracking — GitHub is the source of truth
@@ -65,6 +65,11 @@ docs/                 — guides (MIGRATION.md, FAQ.md, PERFORMANCE.md)
 - **OS**: ubuntu-latest, macos-latest (Windows excluded — GOEXPERIMENT=arenas unsupported)
 - **Go**: 1.23, 1.24, 1.25
 - Tests run with `go test . ` (not `./...`) to avoid coverage tool errors on example main packages
+
+## Code Quality
+- Go Report Card must maintain **A+** grade (https://goreportcard.com/report/github.com/scttfrdmn/safearena)
+- Use `gofmt -s` (not just `gofmt`) — the `-s` simplify flag is what goreportcard checks
+- Tag a new release whenever the report card is showing an old tag with lower scores
 
 ## Versioning
 The project is pre-1.0. Use `v0.x.y` tags. Do not tag `v1.0.0` without explicit user approval.
