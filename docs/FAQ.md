@@ -141,7 +141,7 @@ arenacheck is a static analyzer that catches bugs at compile time:
 - Detects usage after Free()
 - Integrates with `go vet`
 
-Current detection rate: ~100% on test suite (continuous improvement).
+Detection rate: ~100% on common patterns (direct returns, global stores, `.Get()` results, `interface{}` wrapping). Known gaps: escapes through struct fields, channels, maps, and interprocedural calls — see [Current limitations](#arenacheck-not-finding-issues) below.
 
 ### Is it safe for concurrent use?
 

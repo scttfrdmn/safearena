@@ -26,7 +26,11 @@ func runFinal2(pass *analysis.Pass) (interface{}, error) {
 		if fn == nil || fn.Blocks == nil {
 			continue
 		}
+		// checkFunctionFinal2: detects raw arena.NewArena/arena.New[T] escapes
+		// and use-after-free of direct arena allocations.
 		checkFunctionFinal2(pass, fn)
+		// checkFunctionForSafeArena: detects safearena.Ptr[T]/Slice[T] escaping
+		// via return or global store, and .Get() results leaking out of scope.
 		checkFunctionForSafeArena(pass, fn)
 	}
 
