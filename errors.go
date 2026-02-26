@@ -17,7 +17,7 @@ type stackInfo struct {
 func captureStack(skip int) *stackInfo {
 	pc, file, line, ok := runtime.Caller(skip)
 	if !ok {
-		return nil
+		return &stackInfo{file: "unknown", line: 0, fn: "unknown"}
 	}
 
 	fn := runtime.FuncForPC(pc)
@@ -70,4 +70,5 @@ const (
 	hintUseAfterReset         = "Arena was reset before this access. Allocate new values after Reset(), or use Clone() to copy values to heap before calling Reset()."
 	hintResetAfterFree        = "Arena.Reset() was called on a freed arena. Only Reset() a live arena; use New() to create a fresh one."
 	hintStringBuilderOverflow = "Increase the capacity passed to NewStringBuilder, or check string length before appending."
+	hintPoolPutFreed          = "Do not call Pool.Put on a freed arena. Only put arenas back that were obtained from Pool.Get and not manually freed."
 )

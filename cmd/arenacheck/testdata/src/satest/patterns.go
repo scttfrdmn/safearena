@@ -65,6 +65,14 @@ func badGlobalGet() {
 	globalRaw = p.Get() // want `\.Get\(\) escapes via global variable`
 }
 
+// Wrapping Ptr[T] in interface{} and returning it still escapes the arena wrapper.
+func badInterfaceEscape() interface{} {
+	a := safearena.New()
+	defer a.Free()
+	p := safearena.Alloc(a, 42)
+	return interface{}(p) // want "safearena.Ptr escapes via return"
+}
+
 // --- GOOD patterns: should NOT be flagged ---
 
 // Deref() returns a value copy — safe.

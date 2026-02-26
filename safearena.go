@@ -100,7 +100,7 @@ func (p Ptr[T]) Get() *T {
 // Deref dereferences and returns a copy of the value.
 // Unlike Get(), this returns the value itself, not a pointer.
 //
-// Panics if the arena has been freed.
+// Panics if the arena has been freed or reset.
 //
 // Example:
 //

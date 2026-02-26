@@ -6,6 +6,10 @@ import "sync"
 // returns it to the pool; the next Get reuses it. This amortizes arena-creation
 // cost in high-throughput workloads such as per-request HTTP processing.
 //
+// Pool.Get and Pool.Put are safe for concurrent use by multiple goroutines.
+// However, each individual Arena returned by Get must not be shared across
+// goroutines — give each goroutine its own arena from the pool.
+//
 // The zero value is ready to use.
 //
 // Example:
@@ -39,6 +43,10 @@ func (p *Pool) Get() *Arena {
 // The arena must not have been freed with Free() before calling Put.
 // Panics if called on a freed arena.
 func (p *Pool) Put(a *Arena) {
+	if a.freed.Load() {
+		stack := captureStack(2)
+		panic(errorWithHint(a.id, "Pool.Put on freed arena", stack, hintPoolPutFreed))
+	}
 	a.Reset()
 	p.p.Put(a)
 }

@@ -97,6 +97,19 @@ func checkSafeArenaEscape(pass *analysis.Pass, val ssa.Value, pos token.Pos, get
 		return
 	}
 
+	// Check if the value is a Ptr[T] or Slice[T] wrapped in interface{}.
+	// e.g. return interface{}(p) where p is Ptr[int] — the MakeInterface
+	// instruction hides the underlying type from the first check above.
+	// Use canonicalSource to handle defer-induced return-variable indirection
+	// (where val is a load *rv and the MakeInterface is the stored value).
+	if mi, ok := canonicalSource(val, storesTo).(*ssa.MakeInterface); ok {
+		if name := safeArenaWrapperTypeName(mi.X.Type()); name != "" {
+			pass.Reportf(pos, "safearena.%s escapes via %s; use Deref() or Clone() to copy value to heap",
+				name, kind)
+			return
+		}
+	}
+
 	// Check if the value traces back to a .Get() call result.
 	visited := make(map[ssa.Value]bool)
 	if tracesBackToGet(val, getResults, storesTo, visited) {
