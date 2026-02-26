@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - awesome-go listing (PR #6026 submitted, pending maintainer review)
 
+## [0.5.3] - 2026-02-26
+
+### Added
+- **arenacheck: struct field escape detection** (closes #36)
+  - Detects `Ptr[T]`/`Slice[T]` stored into fields of escaping structs
+  - Flags struct pointers that are function parameters (method receivers, pointer args)
+    and heap-allocated structs (`new(T)` / `&T{}`)
+  - Also detects raw `*T` / `[]T` from `.Get()` stored into escaping struct fields
+  - Stack-local structs (`var s T`) are intentionally not flagged
+  - 4 new bad-pattern test cases, 1 new good-pattern test case
+
 ## [0.5.2] - 2026-02-26
 
 ### Fixed
@@ -265,7 +276,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small runtime overhead (~13% vs raw arenas)
 - Not production-ready (experimental arena package)
 
-[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/scttfrdmn/safearena/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/scttfrdmn/safearena/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/scttfrdmn/safearena/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/scttfrdmn/safearena/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/scttfrdmn/safearena/compare/v0.4.7...v0.5.0
