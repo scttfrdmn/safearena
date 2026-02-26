@@ -277,6 +277,24 @@ func TestPoolConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
+func TestAllocSliceNegativeSize(t *testing.T) {
+	a := New()
+	defer a.Free()
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on negative AllocSlice size")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, "negative size") {
+			t.Fatalf("expected 'negative size' in panic, got: %v", r)
+		}
+	}()
+
+	AllocSlice[byte](a, -1) // should panic
+}
+
 func TestPoolPutFreedPanics(t *testing.T) {
 	var pool Pool
 	a := pool.Get()

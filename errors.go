@@ -71,4 +71,5 @@ const (
 	hintResetAfterFree        = "Arena.Reset() was called on a freed arena. Only Reset() a live arena; use New() to create a fresh one."
 	hintStringBuilderOverflow = "Increase the capacity passed to NewStringBuilder, or check string length before appending."
 	hintPoolPutFreed          = "Do not call Pool.Put on a freed arena. Only put arenas back that were obtained from Pool.Get and not manually freed."
+	hintNegativeSize          = "AllocSlice size must be >= 0. Check the caller for a negative length value."
 )

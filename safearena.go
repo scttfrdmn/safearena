@@ -5,6 +5,7 @@ package safearena
 import (
 	"arena"
 	"fmt"
+	"os"
 	"runtime"
 	"sync/atomic"
 )
@@ -32,11 +33,21 @@ type ArenaStats struct {
 	AllocCount int64 // total Alloc and AllocSlice calls
 }
 
-// Ptr is a pointer that knows which arena it belongs to
-// This is the key: encoding arena lifetime in the type!
+// Ptr is a type-safe arena-allocated pointer that tracks its arena's lifetime.
+//
+// Every Ptr[T] holds a reference to the Arena it was allocated from. This
+// prevents the Arena struct itself from being garbage collected while any
+// Ptr[T] value is reachable, but it does NOT prevent the arena's memory
+// from being reclaimed after Free() or Reset(). Accessing a Ptr[T] after
+// Free() or Reset() panics immediately with a descriptive message.
+//
+// Memory note: keeping many Ptr[T] values alive after the arena is freed
+// retains the small Arena control struct (~64 bytes) but not the arena's
+// allocation pool. For tight memory budgets, ensure all Ptr[T] values go
+// out of scope before or shortly after Free().
 type Ptr[T any] struct {
 	ptr        *T
-	arena      *Arena // Keep reference to prevent premature freeing
+	arena      *Arena // keeps Arena control struct alive for lifetime checks
 	generation uint64 // arena generation at allocation time; detects use-after-reset
 	// Removed: arenaID (can get from arena.id, saves 8 bytes per pointer)
 }
@@ -257,6 +268,10 @@ type Slice[T any] struct {
 //	slice := buffer.Get()
 //	copy(slice, []byte("data"))
 func AllocSlice[T any](a *Arena, size int) Slice[T] {
+	if size < 0 {
+		stack := captureStack(2)
+		panic(errorWithHint(a.id, fmt.Sprintf("AllocSlice: negative size %d", size), stack, hintNegativeSize))
+	}
 	if a.freed.Load() {
 		stack := captureStack(2)
 		panic(errorWithHint(a.id, "allocation after free", stack, hintAllocAfterFree))
@@ -382,7 +397,7 @@ func NewWithFinalizer() *Arena {
 	// Set finalizer to detect use-after-GC
 	runtime.SetFinalizer(a, func(a *Arena) {
 		if !a.freed.Load() {
-			fmt.Printf("WARNING: arena %d was GC'd without being freed!\n", a.id)
+			fmt.Fprintf(os.Stderr, "WARNING: arena %d was GC'd without being freed!\n", a.id)
 		}
 	})
 

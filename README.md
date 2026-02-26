@@ -129,6 +129,42 @@ GOEXPERIMENT=arenas arenacheck ./...
 GOEXPERIMENT=arenas go vet -vettool=$(which arenacheck) ./...
 ```
 
+arenacheck detects ~100% of common escape patterns (direct returns, global stores,
+`.Get()` results, `interface{}` wrapping, closure captures, goroutine launches).
+**Known gaps:** escapes through struct fields, channels, maps, and interprocedural
+calls across package boundaries. See [CI Integration Guide](docs/CI_INTEGRATION.md) for details.
+
+## Thread Safety
+
+SafeArena has two distinct concurrency layers:
+
+**Pool — fully concurrent-safe.** `Pool.Get()` and `Pool.Put()` may be called
+from any goroutine concurrently.
+
+**Arena — one goroutine at a time.** A single `*Arena` must not be used from
+multiple goroutines simultaneously. The typical pattern is: each goroutine
+gets its own arena from the pool (or creates one with `New()`), uses it, and
+returns it.
+
+```go
+// ✅ GOOD: each goroutine has its own arena
+for i := 0; i < 10; i++ {
+    go func() {
+        safearena.Scoped(func(a *safearena.Arena) {
+            _ = safearena.Alloc(a, workData{})
+        })
+    }()
+}
+
+// ❌ BAD: shared arena without synchronisation — data race
+a := safearena.New()
+for i := 0; i < 10; i++ {
+    go func() { safearena.Alloc(a, data{}) }() // race!
+}
+```
+
+Run `go test -race` to catch accidental arena sharing in your tests.
+
 ## Benchmarks
 
 Real-world request processing (100 allocations per request):
